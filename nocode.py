@@ -23,25 +23,40 @@ class NoCode:
     def get_daily_products(self):
         print('get daliy prodeucts')
         daliy_url = 'https://lucky.nocode.com/public_lottery?page=1&size=5'
-        req = Request('GET',daliy_url, headers=self.headers).prepare()
+        req = Request('GET', daliy_url, headers=self.headers).prepare()
         response = self.session.send(req)
         if response.status_code == 200:
             for product in response.json()['data']:
-                if not product['joined'] and r'不满足' not in product.get('condition_error', ''):
-                    print('find:', product['id'],
-                          product['prizes']['data'][0]['name'])
-                    yield product['id'], product['prizes']['data'][0]['name']
+                if not product['joined'] :
+                    print('find daily products:', product['id'],product['prizes']['data'][0]['name'])
+                    # yield product['id'], product['prizes']['data'][0]['name']
+                    self.jioned_product(product['prizes']['data'][0]['name'], product['id'])
         else:
             print(r'请求失败,状态码为%s' % response.status_code)
+        print('end get daily product')
 
-    def jioned_product(self, params):
-        print('start jion the product', params[1])
-        url = 'https://lucky.nocode.com/lottery/%s/join' % params[0]
-        datas = {
-            'form_id': "%s" % int(time.time()*1000)
-        }
+    def get_square_products(self, url):
+        if url == "": url = 'https://lucky.nocode.com/square'
+        print(url)
+        req = Request('GET', url, headers=self.headers).prepare()
+        response = self.session.send(req)
+        if response.status_code != 200: return
+        response = response.json()
+        for product in response['data']:
+            if not product['joined'] :
+                print('find square products:', product['id'], product['prizes']['data'][0]['name'])
+                # yield product['id'], product['prizes']['data'][0]['name']
+                self.jioned_product(product['prizes']['data'][0]['name'], product['id'])
+        nextUrl = response['links']['next']
+        if nextUrl != None :
+            self.get_square_products( "https://lucky.nocode.com%s" % nextUrl)
+
+    def jioned_product(self, name, id):
+        print('start jion the product', name)
+        url = 'https://lucky.nocode.com/lottery/%s/join' % id
+        datas = {'form_id': "%s" % int(time.time() * 1000)}
         print('url:', url, 'datas:', datas)
-        req = Request('POST',url, data=datas, headers=self.headers).prepare()
+        req = Request('POST', url, data=datas, headers=self.headers).prepare()
         del req.headers['content-length']
         response = self.session.send(req)
         response = response.json()
@@ -53,5 +68,11 @@ class NoCode:
 
 nocode = NoCode()
 
-for param in nocode.get_daily_products():
-    nocode.jioned_product(param)
+# for param in nocode.get_daily_products():
+#     nocode.jioned_product(param)
+
+# for param in nocode.get_square_products(""):
+#     nocode.jioned_product(param)
+
+nocode.get_daily_products()
+nocode.get_square_products("")

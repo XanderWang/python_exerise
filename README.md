@@ -44,10 +44,10 @@ class NoCode:
         response = self.session.send(req)
         if response.status_code == 200:
             for product in response.json()['data']:
-                if not product['joined'] and r'不满足' not in product.get('condition_error', ''):
-                    print('find:', product['id'],
-                          product['prizes']['data'][0]['name'])
-                    yield product['id'], product['prizes']['data'][0]['name']
+                if not product['joined'] :
+                    print('find:', product['id'],product['prizes']['data'][0]['name'])
+                    # yield product['id'], product['prizes']['data'][0]['name']
+                    self.jioned_product(product['prizes']['data'][0]['name'], product['id'])
         else:
             print(r'请求失败,状态码为%s' % response.status_code)
 ```
@@ -81,3 +81,27 @@ class NoCode:
 ```
 
 这里有个坑需要特别说明下，在参与抽奖的这个请求里面， `headers` 里面不能有 `content-length` ,否则会请求失败，原因未知，解决的办法就是删掉 `content-length` 。
+
+
+## 获取自助福利并参与
+
+老规矩，先上代码
+```python
+    def get_square_products(self, url):
+        if url == "": url = 'https://lucky.nocode.com/square'
+        print(url)
+        req = Request('GET', url, headers=self.headers).prepare()
+        response = self.session.send(req)
+        if response.status_code != 200: return
+        response = response.json()
+        for product in response['data']:
+            if not product['joined'] :
+                print('find square products:', product['id'], product['prizes']['data'][0]['name'])
+                # yield product['id'], product['prizes']['data'][0]['name']
+                self.jioned_product(product['prizes']['data'][0]['name'], product['id'])
+        nextUrl = response['links']['next']
+        if nextUrl != None :
+            self.get_square_products( "https://lucky.nocode.com%s" % nextUrl)
+```
+
+自助福利是分页的，所有后面有个递归调用。然后最开始的 url 是 `https://lucky.nocode.com/square`，请求这个 api 以后，会返回自助福利列表，如果有下一页的话就请求下一页的 url ，解析出来奖品后参与抽奖。
