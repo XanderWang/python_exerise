@@ -59,6 +59,7 @@ class NoCode:
         req = Request('POST', url, data=datas, headers=self.headers).prepare()
         del req.headers['content-length']
         response = self.session.send(req)
+        if response.status_code != 200: return
         response = response.json()
         if response.get('data', False):
             print(r'抽奖成功')
